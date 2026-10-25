@@ -8,6 +8,13 @@
 #define PUMP_COUNT 4
 #define PIPE_COUNT 4
 #define MESSAGE_QUEUE_CAPACITY 128
+#define MESSAGE_PERIOD 2
+#define MESSAGE_LOSS_PERCENT 15
+#define MESSAGE_DUPLICATE_PERCENT 15
+#define MAX_MESSAGE_DELAY 3
+
+// В ДЗ2 такт в полях объектов означает их собственный шаг или период.
+// previous_level хранит уровень до последнего изменения, flow - результат последнего шага насоса.
 
 // Фактическое состояние резервуара
 typedef struct {
@@ -27,6 +34,9 @@ typedef struct {
     double demand; // потребность на текущем такте
     double received; // объём воды, полученный на текущем такте
     double deficit; // дефицит воды
+    double total_demand; // суммарная потребность за завершённые периоды
+    double total_received; // суммарно полученная вода
+    double total_deficit; // суммарный дефицит
 } District;
 
 // Фактическое состояние насоса
@@ -70,12 +80,22 @@ typedef struct {
 
     double power_limit; // лимит потребляемой мощности для насосов
     bool fatal_accident; // произошла ли авария (нужно ли остановить систему)
+
+    unsigned long long measured_count; // сколько измерений сделали датчики
+    unsigned long long lost_count; // сколько сообщений потерялось
+    unsigned long long duplicate_count; // сколько дубликатов отправили
+    unsigned long long received_count; // сколько сообщений дошло до диспетчера
+    unsigned long long ignored_duplicate_count; // сколько дубликатов проигнорировали
+    unsigned long long ignored_old_count; // сколько устаревших сообщений проигнорировали
 } WaterSystem;
 
+// После запуска потоков эти функции вызываются при захваченном мьютексе модели
 void ModelInit(WaterSystem *system); // запуск системы
-void PrepareTick(WaterSystem *system, int tick); // функция подготовки нового такта
-void PhysicalStep(WaterSystem *system, int tick); // функция физического изменения системы
-void GenerateMessages(WaterSystem *system, int tick); // функция создания сообщений датчиков
+void ReservoirStep(WaterSystem *system, int reservoir_id, int tick); // пополнение резервуара
+void DistrictPrepare(WaterSystem *system, int district_id, int tick); // новая потребность района
+void DistrictFinish(WaterSystem *system, int district_id, int tick); // результат снабжения района
+void PumpStep(WaterSystem *system, int pump_id, int tick); // перекачивание воды
+void GenerateMessage(WaterSystem *system, int reservoir_id, int tick, unsigned int *seed); // измерение датчика
 
 double ActivePumpPower(const WaterSystem *system); // подсчёт текущей потребляемой мощности
 

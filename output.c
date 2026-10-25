@@ -21,16 +21,37 @@ void PrintStatus(const WaterSystem *system, const Dispatcher *dispatcher, int ti
     printf("Districts:\n");
     for (int d = 0; d < DISTRICT_COUNT; ++d) {
         const District *district = &system->districts[d];
-        printf("  %s: demand = %.1f, received = %.1f, deficit = %.1f\n", district->name, district->demand, district->received, district->deficit);
+        printf("  %s: demand = %.1f, received = %.1f, remaining = %.1f\n", district->name, district->demand, district->received, district->demand - district->received);
     }
 
     printf("Pumps:\n");
     for (int p = 0; p < PUMP_COUNT; ++p) {
         const Pump *pump = &system->pumps[p];
-        printf("  %s is %s: flow = %.1f, power = %.1f\n", pump->name, pump->enabled ? "ON" : "OFF", pump->flow, pump->enabled ? pump->power : 0.0);
+        printf("  %s is %s: last flow = %.1f, power = %.1f\n", pump->name, pump->enabled ? "ON" : "OFF", pump->flow, pump->enabled ? pump->power : 0.0);
     }
 
     printf("Total active power: %.1f/%.1f\n", ActivePumpPower(system), system->power_limit);
 
     printf("============================ TICK %d ============================\n\n\n", tick);
+}
+
+void PrintSummary(const WaterSystem *system) {
+    printf("\n========== SUMMARY ==========\n");
+    printf("Messages: measured = %llu, lost = %llu, duplicates sent = %llu\n", system->measured_count, system->lost_count, system->duplicate_count);
+    printf("Messages: received = %llu, duplicates ignored = %llu, old ignored = %llu\n", system->received_count, system->ignored_duplicate_count, system->ignored_old_count);
+
+    int pending = 0;
+    for (int i = 0; i < MESSAGE_QUEUE_CAPACITY; ++i) {
+        if (system->messages[i].active) {
+            ++pending;
+        }
+    }
+    printf("Messages still in transit: %d\n", pending);
+
+    for (int d = 0; d < DISTRICT_COUNT; ++d) {
+        const District *district = &system->districts[d];
+        printf("%s completed periods: demand = %.1f, received = %.1f, deficit = %.1f\n", district->name, district->total_demand, district->total_received, district->total_deficit);
+        printf("%s unfinished period: demand = %.1f, received = %.1f, remaining = %.1f\n", district->name, district->demand, district->received, district->demand - district->received);
+    }
+    printf("=============================\n");
 }

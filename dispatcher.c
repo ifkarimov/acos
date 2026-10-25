@@ -43,9 +43,11 @@ void DispatcherReceiveMessages(WaterSystem *system, Dispatcher *dispatcher, int 
             continue;
         }
 
+        ++system->received_count;
         printf("[MESSAGE][Tick #%d] Dispatcher received message #%d from %s: the level is %.1f (measured at tick #%d)\n", tick, message->id, system->reservoirs[message->reservoir_id].name, message->measured_level, message->measured_tick);
 
         if (message_was_processed(dispatcher, message->id)) {
+            ++system->ignored_duplicate_count;
             printf("[MESSAGE][Tick #%d] Message #%d is a duplicate. It is ignored\n", tick, message->id);
             message->active = false;
             continue;
@@ -55,11 +57,13 @@ void DispatcherReceiveMessages(WaterSystem *system, Dispatcher *dispatcher, int 
         int r = message->reservoir_id;
         dispatcher->has_level[r] = true;
 
-        if (message->measured_tick >= dispatcher->known_measure_tick[r]) {
+        if (message->measured_tick > dispatcher->known_measure_tick[r] ||
+            (message->measured_tick == dispatcher->known_measure_tick[r] && message->id > dispatcher->known_message_id[r])) {
             dispatcher->known_level[r] = message->measured_level;
             dispatcher->known_measure_tick[r] = message->measured_tick;
             dispatcher->known_message_id[r] = message->id;
         } else {
+            ++system->ignored_old_count;
             printf("[MESSAGE][Tick #%d] Message #%d contains old data. It is ignored\n", tick, message->id);    
         }
 
@@ -112,12 +116,26 @@ void DispatcherControl(WaterSystem *system, const Dispatcher *dispatcher, int ti
         used_power += system->pumps[3].power;
     }
 
+    bool changed = false;
+
+    // сначала освобождаем мощность, потом включаем остальные насосы
     for (int p = 0; p < PUMP_COUNT; ++p) {
-        if (system->pumps[p].enabled != desired[p]) {
-            printf("[CONTROL][Tick #%d] Dispatcher turns %s %s\n", tick, system->pumps[p].name, desired[p] ? "ON" : "OFF");
+        if (system->pumps[p].enabled && !desired[p]) {
+            system->pumps[p].enabled = false;
+            changed = true;
+            printf("[CONTROL][Tick #%d] Dispatcher turns %s OFF\n", tick, system->pumps[p].name);
         }
-        system->pumps[p].enabled = desired[p];
     }
 
-    printf("[CONTROL][Tick #%d] Active pump power is %.1f/%.1f\n", tick, used_power, system->power_limit);
+    for (int p = 0; p < PUMP_COUNT; ++p) {
+        if (!system->pumps[p].enabled && desired[p]) {
+            system->pumps[p].enabled = true;
+            changed = true;
+            printf("[CONTROL][Tick #%d] Dispatcher turns %s ON\n", tick, system->pumps[p].name);
+        }
+    }
+
+    if (changed) {
+        printf("[CONTROL][Tick #%d] Active pump power is %.1f/%.1f\n", tick, used_power, system->power_limit);
+    }
 }
