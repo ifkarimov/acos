@@ -7,4 +7,6 @@
 void PrintStatus(const WaterSystem *system, const Dispatcher *dispatcher, int tick);
 // функция вывода полного состояния системы на текущем такте
 
+void PrintSummary(const WaterSystem *system); // итоговая статистика
+
 #endif

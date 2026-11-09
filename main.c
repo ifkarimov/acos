@@ -3,8 +3,10 @@
 #include "dispatcher.h"
 #include "model.h"
 #include "output.h"
+#include "simulation.h"
 
 #include <errno.h>
+#include <limits.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -12,18 +14,17 @@
 
 static volatile sig_atomic_t stop_requested = 0;
 
-static void on_sigint(int signal_number) {
-    (void)signal_number; // избегаем предупреждение компилятора, т.к параметр фукнции обязателен, но мы его не используем
-    stop_requested = 1;
+static void on_signal(int signal_number) {
+    stop_requested = signal_number;
 }
 
-static long parse_nonnegative_long(const char *text, const char *name) {
+static long parse_nonnegative_long(const char *text, const char *name, long maximum) {
     char *end = NULL;
     errno = 0;
 
     long value = strtol(text, &end, 10);
 
-    if (errno != 0 || end == text || *end != '\0' || value < 0) {
+    if (errno != 0 || end == text || *end != '\0' || value < 0 || value > maximum) {
         fprintf(stderr, "Invalid %s: %s\n", name, text);
         exit(2);
     }
@@ -31,34 +32,21 @@ static long parse_nonnegative_long(const char *text, const char *name) {
     return value;
 }
 
-static void sleep_ms(long delay_ms) {
-    if (delay_ms <= 0) {
-        return;
-    }
-
-    struct timespec delay = {
-        .tv_sec = delay_ms / 1000,
-        .tv_nsec = (delay_ms % 1000) * 1000000L,
-    };
-
-    nanosleep(&delay, NULL);
-}
-
 int main(int argc, char **argv) {
-    long max_ticks = 30;
+    int max_ticks = 30;
     long delay_ms = 1000;
     unsigned int seed = (unsigned int)time(NULL);
 
     if (argc > 1) {
-        max_ticks = parse_nonnegative_long(argv[1], "ticks");
+        max_ticks = (int)parse_nonnegative_long(argv[1], "ticks", INT_MAX - 2 * MAX_MESSAGE_DELAY);
     }
 
     if (argc > 2) {
-        delay_ms = parse_nonnegative_long(argv[2], "delay_ms");
+        delay_ms = parse_nonnegative_long(argv[2], "delay_ms", 3600000);
     }
 
     if (argc > 3) {
-        seed = (unsigned int)parse_nonnegative_long(argv[3], "seed");
+        seed = (unsigned int)parse_nonnegative_long(argv[3], "seed", LONG_MAX < UINT_MAX ? LONG_MAX : (long)UINT_MAX);
     }
 
     if (argc > 4) {
@@ -66,45 +54,24 @@ int main(int argc, char **argv) {
         return 2;
     }
 
-    signal(SIGINT, on_sigint);
-    srand(seed);
+    struct sigaction action = {0};
+    action.sa_handler = on_signal;
+    sigemptyset(&action.sa_mask);
+    if (sigaction(SIGINT, &action, NULL) != 0 || sigaction(SIGTERM, &action, NULL) != 0) {
+        perror("sigaction");
+        return 2;
+    }
 
-    WaterSystem system;
-    Dispatcher dispatcher;
-
-    ModelInit(&system);
-    DispatcherInit(&dispatcher, &system);
-
+    // строки сразу попадают в терминал или перенаправленный файл
+    setvbuf(stdout, NULL, _IOLBF, 0);
     printf("Городская система водоснабжения\n");
-    printf("ticks = %ld (0 = unlimited), delay = %ld ms, random seed = %u\n\n", max_ticks, delay_ms, seed);
+    printf("ticks = %d (0 = unlimited), delay = %ld ms (0 = fast mode), random seed = %u\n\n", max_ticks, delay_ms, seed);
 
-    int tick = 0;
-
-    while (!stop_requested && !system.fatal_accident && (max_ticks == 0 || tick < max_ticks)) {
-        PrepareTick(&system, tick);
-        DispatcherReceiveMessages(&system, &dispatcher, tick);
-        DispatcherControl(&system, &dispatcher, tick);
-        PhysicalStep(&system, tick);
-
-        if (system.fatal_accident) {
-            break;
-        }
-
-        GenerateMessages(&system, tick);
-        DispatcherReceiveMessages(&system, &dispatcher, tick);
-        PrintStatus(&system, &dispatcher, tick);
-
-        ++tick;
-        sleep_ms(delay_ms);
+    int result = RunSimulation(max_ticks, delay_ms, seed, &stop_requested);
+    if (fflush(stdout) == EOF || ferror(stdout)) {
+        fprintf(stderr, "Failed to write simulation output\n");
+        return 2;
     }
 
-    if (stop_requested) {
-        printf("[FINISH] Interrupted by user (Ctrl + C)\n");
-    } else if (system.fatal_accident) {
-        printf("[FINISH] Simulation stopped because of a fatal accident!\n");
-    } else {
-        printf("[FINISH] Requested tick count is completed\n");
-    }
-
-    return system.fatal_accident ? 1 : 0;
+    return result;
 }
