@@ -1,0 +1,404 @@
+[DEMAND][Tick #0] Central district needs 9.0 units
+[DEMAND][Tick #0] East district needs 12.0 units
+[DEMAND][Tick #0] West district needs 6.0 units
+[READY] Session test_600_finite, controller pid = 601
+[REGISTER] reservoir 0: pid = 602
+[REGISTER] reservoir 1: pid = 603
+[REGISTER] district 1: pid = 605
+[REGISTER] district 0: pid = 604
+[REGISTER] district 2: pid = 606
+[REGISTER] pump 0: pid = 607
+[REGISTER] pump 1: pid = 608
+[REGISTER] pump 3: pid = 610
+[REGISTER] sensor 0: pid = 611
+[REGISTER] sensor 1: pid = 612
+[REGISTER] pump 2: pid = 609
+[REGISTER] dispatcher 0: pid = 613
+[INDEPENDENT] Started 12 participants
+[SENSOR][Tick #0] South Reservoir's level is 64.0 (message #1)
+[MESSAGE][Tick #0] Message #1 is sent. Delivery tick is 2
+[INFLOW][Tick #0] South Reservoir: 64.0 -> 68.0
+[SENSOR][Tick #0] North Reservoir's level is 82.0 (message #2)
+[MESSAGE][Tick #0] Message #2 is sent. Delivery tick is 1
+[INFLOW][Tick #0] North Reservoir: 82.0 -> 88.0
+[CONTROL][Tick #0] Dispatcher turns P1 (North -> Central) ON
+[CONTROL][Tick #0] Dispatcher turns P2 (North -> East) ON
+[CONTROL][Tick #0] Dispatcher turns P4 (South -> West) ON
+[CONTROL][Tick #0] Active pump power is 11.0/11.0
+
+
+========== TICK 0: CURRENT STATUS and DISPATCHER VIEW ==========
+Reservoirs:
+  North Reservoir: actual = 88.0/120.0, dispatcher = 82.0 (initial data)
+  South Reservoir: actual = 68.0/100.0, dispatcher = 64.0 (initial data)
+Districts:
+  Central: demand = 9.0, received = 0.0, remaining = 9.0
+  East: demand = 12.0, received = 0.0, remaining = 12.0
+  West: demand = 6.0, received = 0.0, remaining = 6.0
+Pumps:
+  P1 (North -> Central) is ON: last flow = 0.0, power = 4.0
+  P2 (North -> East) is ON: last flow = 0.0, power = 3.0
+  P3 (South -> Central) is OFF: last flow = 0.0, power = 0.0
+  P4 (South -> West) is ON: last flow = 0.0, power = 4.0
+Total active power: 11.0/11.0
+============================ TICK 0 ============================
+
+
+[MESSAGE][Tick #1] Dispatcher received message #2 from North Reservoir: the level is 82.0 (measured at tick #0)
+[CONSUMPTION][Tick #1] Central: demand = 9.0, received = 0.0
+[DEFICIT][Tick #1] Central district faced deficit: 9.0 (Demand: 9.0, Received: 0.0)!
+[DEMAND][Tick #1] Central district needs 11.0 units
+[FLOW][Tick #1] P2 (North -> East): 0.0 -> 7.0 units/step
+[INFLOW][Tick #1] South Reservoir: 68.0 -> 72.0
+[CONSUMPTION][Tick #1] East: demand = 12.0, received = 7.0
+[DEFICIT][Tick #1] East district faced deficit: 5.0 (Demand: 12.0, Received: 7.0)!
+[DEMAND][Tick #1] East district needs 9.0 units
+[INFLOW][Tick #1] North Reservoir: 81.0 -> 87.0
+[FLOW][Tick #1] P1 (North -> Central): 0.0 -> 9.0 units/step
+[CONSUMPTION][Tick #1] West: demand = 6.0, received = 0.0
+[DEFICIT][Tick #1] West district faced deficit: 6.0 (Demand: 6.0, Received: 0.0)!
+[DEMAND][Tick #1] West district needs 10.0 units
+[FLOW][Tick #1] P4 (South -> West): 0.0 -> 8.0 units/step
+[CONTROL][Tick #1] Dispatcher turns P4 (South -> West) OFF
+[CONTROL][Tick #1] Dispatcher turns P3 (South -> Central) ON
+[CONTROL][Tick #1] Active pump power is 10.0/11.0
+[SENSOR][Tick #1] South Reservoir's level is 64.0 (message #3)
+[MESSAGE][Tick #1] Message #3 is sent. Delivery tick is 1
+
+
+========== TICK 1: CURRENT STATUS and DISPATCHER VIEW ==========
+Reservoirs:
+  North Reservoir: actual = 78.0/120.0, dispatcher = 82.0 (measurement: tick 0, message #2)
+  South Reservoir: actual = 64.0/100.0, dispatcher = 64.0 (initial data)
+Districts:
+  Central: demand = 11.0, received = 9.0, remaining = 2.0
+  East: demand = 9.0, received = 0.0, remaining = 9.0
+  West: demand = 10.0, received = 8.0, remaining = 2.0
+Pumps:
+  P1 (North -> Central) is ON: last flow = 9.0, power = 4.0
+  P2 (North -> East) is ON: last flow = 7.0, power = 3.0
+  P3 (South -> Central) is ON: last flow = 0.0, power = 3.0
+  P4 (South -> West) is OFF: last flow = 8.0, power = 0.0
+Total active power: 10.0/11.0
+============================ TICK 1 ============================
+
+
+[MESSAGE][Tick #2] Dispatcher received message #1 from South Reservoir: the level is 64.0 (measured at tick #0)
+[MESSAGE][Tick #2] Dispatcher received message #3 from South Reservoir: the level is 64.0 (measured at tick #1)
+[SENSOR][Tick #2] North Reservoir's level is 78.0 (message #4)
+[MESSAGE][Tick #2] Message #4 is sent. Delivery tick is 3
+[FLOW][Tick #2] P3 (South -> Central): 0.0 -> 2.0 units/step
+[CONSUMPTION][Tick #2] Central: demand = 11.0, received = 11.0
+[DEMAND][Tick #2] Central district needs 13.0 units
+[CONSUMPTION][Tick #2] East: demand = 9.0, received = 0.0
+[DEFICIT][Tick #2] East district faced deficit: 9.0 (Demand: 9.0, Received: 0.0)!
+[DEMAND][Tick #2] East district needs 7.0 units
+[INFLOW][Tick #2] North Reservoir: 78.0 -> 84.0
+[INFLOW][Tick #2] South Reservoir: 62.0 -> 66.0
+[FLOW][Tick #2] P4 (South -> West): 8.0 -> 0.0 units/step
+[CONSUMPTION][Tick #2] West: demand = 10.0, received = 8.0
+[DEFICIT][Tick #2] West district faced deficit: 2.0 (Demand: 10.0, Received: 8.0)!
+[DEMAND][Tick #2] West district needs 12.0 units
+
+
+========== TICK 2: CURRENT STATUS and DISPATCHER VIEW ==========
+Reservoirs:
+  North Reservoir: actual = 68.0/120.0, dispatcher = 82.0 (measurement: tick 0, message #2)
+  South Reservoir: actual = 66.0/100.0, dispatcher = 64.0 (measurement: tick 1, message #3)
+Districts:
+  Central: demand = 13.0, received = 9.0, remaining = 4.0
+  East: demand = 7.0, received = 7.0, remaining = 0.0
+  West: demand = 12.0, received = 0.0, remaining = 12.0
+Pumps:
+  P1 (North -> Central) is ON: last flow = 9.0, power = 4.0
+  P2 (North -> East) is ON: last flow = 7.0, power = 3.0
+  P3 (South -> Central) is ON: last flow = 2.0, power = 3.0
+  P4 (South -> West) is OFF: last flow = 0.0, power = 0.0
+Total active power: 10.0/11.0
+============================ TICK 2 ============================
+
+
+[MESSAGE][Tick #3] Dispatcher received message #4 from North Reservoir: the level is 78.0 (measured at tick #2)
+[FLOW][Tick #3] P3 (South -> Central): 2.0 -> 4.0 units/step
+[CONSUMPTION][Tick #3] East: demand = 7.0, received = 7.0
+[DEMAND][Tick #3] East district needs 11.0 units
+[CONSUMPTION][Tick #3] Central: demand = 13.0, received = 13.0
+[DEMAND][Tick #3] Central district needs 10.0 units
+[INFLOW][Tick #3] North Reservoir: 68.0 -> 74.0
+[INFLOW][Tick #3] South Reservoir: 62.0 -> 66.0
+[CONSUMPTION][Tick #3] West: demand = 12.0, received = 0.0
+[DEFICIT][Tick #3] West district faced deficit: 12.0 (Demand: 12.0, Received: 0.0)!
+[DEMAND][Tick #3] West district needs 8.0 units
+[SENSOR][Tick #3] South Reservoir's level is 66.0 (message #5)
+[MESSAGE][Tick #3] Message #5 is sent. Delivery tick is 6
+
+
+========== TICK 3: CURRENT STATUS and DISPATCHER VIEW ==========
+Reservoirs:
+  North Reservoir: actual = 58.0/120.0, dispatcher = 78.0 (measurement: tick 2, message #4)
+  South Reservoir: actual = 66.0/100.0, dispatcher = 64.0 (measurement: tick 1, message #3)
+Districts:
+  Central: demand = 10.0, received = 9.0, remaining = 1.0
+  East: demand = 11.0, received = 7.0, remaining = 4.0
+  West: demand = 8.0, received = 0.0, remaining = 8.0
+Pumps:
+  P1 (North -> Central) is ON: last flow = 9.0, power = 4.0
+  P2 (North -> East) is ON: last flow = 7.0, power = 3.0
+  P3 (South -> Central) is ON: last flow = 4.0, power = 3.0
+  P4 (South -> West) is OFF: last flow = 0.0, power = 0.0
+Total active power: 10.0/11.0
+============================ TICK 3 ============================
+
+
+[SENSOR][Tick #4] North Reservoir's level is 58.0 (message #6)
+[MESSAGE][Tick #4] Message #6 was LOST!
+[FLOW][Tick #4] P3 (South -> Central): 4.0 -> 1.0 units/step
+[CONSUMPTION][Tick #4] Central: demand = 10.0, received = 10.0
+[DEMAND][Tick #4] Central district needs 8.0 units
+[CONSUMPTION][Tick #4] East: demand = 11.0, received = 7.0
+[DEFICIT][Tick #4] East district faced deficit: 4.0 (Demand: 11.0, Received: 7.0)!
+[DEMAND][Tick #4] East district needs 13.0 units
+[CONTROL][Tick #4] Dispatcher turns P3 (South -> Central) OFF
+[CONTROL][Tick #4] Dispatcher turns P4 (South -> West) ON
+[CONTROL][Tick #4] Active pump power is 11.0/11.0
+[INFLOW][Tick #4] South Reservoir: 65.0 -> 69.0
+[INFLOW][Tick #4] North Reservoir: 58.0 -> 64.0
+[FLOW][Tick #4] P4 (South -> West): 0.0 -> 8.0 units/step
+[FLOW][Tick #4] P1 (North -> Central): 9.0 -> 8.0 units/step
+[CONSUMPTION][Tick #4] West: demand = 8.0, received = 8.0
+[DEMAND][Tick #4] West district needs 7.0 units
+
+
+========== TICK 4: CURRENT STATUS and DISPATCHER VIEW ==========
+Reservoirs:
+  North Reservoir: actual = 49.0/120.0, dispatcher = 78.0 (measurement: tick 2, message #4)
+  South Reservoir: actual = 61.0/100.0, dispatcher = 64.0 (measurement: tick 1, message #3)
+Districts:
+  Central: demand = 8.0, received = 8.0, remaining = 0.0
+  East: demand = 13.0, received = 7.0, remaining = 6.0
+  West: demand = 7.0, received = 0.0, remaining = 7.0
+Pumps:
+  P1 (North -> Central) is ON: last flow = 8.0, power = 4.0
+  P2 (North -> East) is ON: last flow = 7.0, power = 3.0
+  P3 (South -> Central) is OFF: last flow = 1.0, power = 0.0
+  P4 (South -> West) is ON: last flow = 8.0, power = 4.0
+Total active power: 11.0/11.0
+============================ TICK 4 ============================
+
+
+[FLOW][Tick #5] P3 (South -> Central): 1.0 -> 0.0 units/step
+[CONSUMPTION][Tick #5] Central: demand = 8.0, received = 8.0
+[DEMAND][Tick #5] Central district needs 12.0 units
+[CONTROL][Tick #5] Dispatcher turns P4 (South -> West) OFF
+[CONTROL][Tick #5] Dispatcher turns P3 (South -> Central) ON
+[CONTROL][Tick #5] Active pump power is 10.0/11.0
+[INFLOW][Tick #5] South Reservoir: 61.0 -> 65.0
+[INFLOW][Tick #5] North Reservoir: 49.0 -> 55.0
+[FLOW][Tick #5] P2 (North -> East): 7.0 -> 6.0 units/step
+[CONSUMPTION][Tick #5] East: demand = 13.0, received = 13.0
+[DEMAND][Tick #5] East district needs 9.0 units
+[FLOW][Tick #5] P4 (South -> West): 8.0 -> 0.0 units/step
+[FLOW][Tick #5] P1 (North -> Central): 8.0 -> 9.0 units/step
+[CONSUMPTION][Tick #5] West: demand = 7.0, received = 0.0
+[DEFICIT][Tick #5] West district faced deficit: 7.0 (Demand: 7.0, Received: 0.0)!
+[DEMAND][Tick #5] West district needs 9.0 units
+[SENSOR][Tick #5] South Reservoir's level is 65.0 (message #7)
+[MESSAGE][Tick #5] Message #7 is sent. Delivery tick is 5
+[MESSAGE][Tick #5] Dispatcher received message #7 from South Reservoir: the level is 65.0 (measured at tick #5)
+[SENSOR][Tick #5] North Reservoir's level is 40.0 (message #8)
+[MESSAGE][Tick #5] Message #8 is sent. Delivery tick is 8
+[FLOW][Tick #5] P3 (South -> Central): 0.0 -> 3.0 units/step
+
+
+========== TICK 5: CURRENT STATUS and DISPATCHER VIEW ==========
+Reservoirs:
+  North Reservoir: actual = 40.0/120.0, dispatcher = 78.0 (measurement: tick 2, message #4)
+  South Reservoir: actual = 62.0/100.0, dispatcher = 65.0 (measurement: tick 5, message #7)
+Districts:
+  Central: demand = 12.0, received = 12.0, remaining = 0.0
+  East: demand = 9.0, received = 0.0, remaining = 9.0
+  West: demand = 9.0, received = 0.0, remaining = 9.0
+Pumps:
+  P1 (North -> Central) is ON: last flow = 9.0, power = 4.0
+  P2 (North -> East) is ON: last flow = 6.0, power = 3.0
+  P3 (South -> Central) is ON: last flow = 3.0, power = 3.0
+  P4 (South -> West) is OFF: last flow = 0.0, power = 0.0
+Total active power: 10.0/11.0
+============================ TICK 5 ============================
+
+
+[MESSAGE][Tick #6] Dispatcher received message #5 from South Reservoir: the level is 66.0 (measured at tick #3)
+[MESSAGE][Tick #6] Message #5 contains old data. It is ignored
+[CONSUMPTION][Tick #6] Central: demand = 12.0, received = 12.0
+[DEMAND][Tick #6] Central district needs 14.0 units
+[FLOW][Tick #6] P2 (North -> East): 6.0 -> 7.0 units/step
+[INFLOW][Tick #6] North Reservoir: 33.0 -> 39.0
+[CONSUMPTION][Tick #6] East: demand = 9.0, received = 7.0
+[DEFICIT][Tick #6] East district faced deficit: 2.0 (Demand: 9.0, Received: 7.0)!
+[DEMAND][Tick #6] East district needs 8.0 units
+[INFLOW][Tick #6] South Reservoir: 62.0 -> 66.0
+[CONSUMPTION][Tick #6] West: demand = 9.0, received = 0.0
+[DEFICIT][Tick #6] West district faced deficit: 9.0 (Demand: 9.0, Received: 0.0)!
+[DEMAND][Tick #6] West district needs 11.0 units
+[FLOW][Tick #6] P3 (South -> Central): 3.0 -> 5.0 units/step
+
+
+========== TICK 6: CURRENT STATUS and DISPATCHER VIEW ==========
+Reservoirs:
+  North Reservoir: actual = 30.0/120.0, dispatcher = 78.0 (measurement: tick 2, message #4)
+  South Reservoir: actual = 61.0/100.0, dispatcher = 65.0 (measurement: tick 5, message #7)
+Districts:
+  Central: demand = 14.0, received = 14.0, remaining = 0.0
+  East: demand = 8.0, received = 0.0, remaining = 8.0
+  West: demand = 11.0, received = 0.0, remaining = 11.0
+Pumps:
+  P1 (North -> Central) is ON: last flow = 9.0, power = 4.0
+  P2 (North -> East) is ON: last flow = 7.0, power = 3.0
+  P3 (South -> Central) is ON: last flow = 5.0, power = 3.0
+  P4 (South -> West) is OFF: last flow = 0.0, power = 0.0
+Total active power: 10.0/11.0
+============================ TICK 6 ============================
+
+
+[CONSUMPTION][Tick #7] Central: demand = 14.0, received = 14.0
+[DEMAND][Tick #7] Central district needs 10.0 units
+[BOUND][Tick #7] North Reservoir reached LOW level (23.0)!
+[INFLOW][Tick #7] North Reservoir: 23.0 -> 29.0
+[BOUND][Tick #7] North Reservoir reached LOW level (20.0)!
+[CONSUMPTION][Tick #7] East: demand = 8.0, received = 7.0
+[DEFICIT][Tick #7] East district faced deficit: 1.0 (Demand: 8.0, Received: 7.0)!
+[DEMAND][Tick #7] East district needs 10.0 units
+[INFLOW][Tick #7] South Reservoir: 61.0 -> 65.0
+[CONSUMPTION][Tick #7] West: demand = 11.0, received = 0.0
+[DEFICIT][Tick #7] West district faced deficit: 11.0 (Demand: 11.0, Received: 0.0)!
+[DEMAND][Tick #7] West district needs 8.0 units
+[SENSOR][Tick #7] South Reservoir's level is 65.0 (message #9)
+[MESSAGE][Tick #7] Message #9 is sent. Delivery tick is 8
+[SENSOR][Tick #7] North Reservoir's level is 20.0 (message #10)
+[MESSAGE][Tick #7] Message #10 is sent. Delivery tick is 10
+[FLOW][Tick #7] P3 (South -> Central): 5.0 -> 1.0 units/step
+
+
+========== TICK 7: CURRENT STATUS and DISPATCHER VIEW ==========
+Reservoirs:
+  North Reservoir: actual = 20.0/120.0, dispatcher = 78.0 (measurement: tick 2, message #4)
+  South Reservoir: actual = 64.0/100.0, dispatcher = 65.0 (measurement: tick 5, message #7)
+Districts:
+  Central: demand = 10.0, received = 10.0, remaining = 0.0
+  East: demand = 10.0, received = 0.0, remaining = 10.0
+  West: demand = 8.0, received = 0.0, remaining = 8.0
+Pumps:
+  P1 (North -> Central) is ON: last flow = 9.0, power = 4.0
+  P2 (North -> East) is ON: last flow = 7.0, power = 3.0
+  P3 (South -> Central) is ON: last flow = 1.0, power = 3.0
+  P4 (South -> West) is OFF: last flow = 0.0, power = 0.0
+Total active power: 10.0/11.0
+============================ TICK 7 ============================
+
+
+[MESSAGE][Tick #8] Dispatcher received message #9 from South Reservoir: the level is 65.0 (measured at tick #7)
+[MESSAGE][Tick #8] Dispatcher received message #8 from North Reservoir: the level is 40.0 (measured at tick #5)
+[CONSUMPTION][Tick #8] Central: demand = 10.0, received = 10.0
+[DEMAND][Tick #8] Central district needs 9.0 units
+[INFLOW][Tick #8] North Reservoir: 20.0 -> 26.0
+[INFLOW][Tick #8] South Reservoir: 64.0 -> 68.0
+[CONSUMPTION][Tick #8] East: demand = 10.0, received = 7.0
+[DEFICIT][Tick #8] East district faced deficit: 3.0 (Demand: 10.0, Received: 7.0)!
+[DEMAND][Tick #8] East district needs 12.0 units
+[CONTROL][Tick #8] Dispatcher turns P3 (South -> Central) OFF
+[CONTROL][Tick #8] Dispatcher turns P4 (South -> West) ON
+[CONTROL][Tick #8] Active pump power is 11.0/11.0
+[CONSUMPTION][Tick #8] West: demand = 8.0, received = 0.0
+[DEFICIT][Tick #8] West district faced deficit: 8.0 (Demand: 8.0, Received: 0.0)!
+[DEMAND][Tick #8] West district needs 6.0 units
+[FLOW][Tick #8] P4 (South -> West): 0.0 -> 6.0 units/step
+[FLOW][Tick #8] P3 (South -> Central): 1.0 -> 0.0 units/step
+
+
+========== TICK 8: CURRENT STATUS and DISPATCHER VIEW ==========
+Reservoirs:
+  North Reservoir: actual = 10.0/120.0, dispatcher = 40.0 (measurement: tick 5, message #8)
+  South Reservoir: actual = 62.0/100.0, dispatcher = 65.0 (measurement: tick 7, message #9)
+Districts:
+  Central: demand = 9.0, received = 9.0, remaining = 0.0
+  East: demand = 12.0, received = 0.0, remaining = 12.0
+  West: demand = 6.0, received = 6.0, remaining = 0.0
+Pumps:
+  P1 (North -> Central) is ON: last flow = 9.0, power = 4.0
+  P2 (North -> East) is ON: last flow = 7.0, power = 3.0
+  P3 (South -> Central) is OFF: last flow = 0.0, power = 0.0
+  P4 (South -> West) is ON: last flow = 6.0, power = 4.0
+Total active power: 11.0/11.0
+============================ TICK 8 ============================
+
+
+[CONSUMPTION][Tick #9] Central: demand = 9.0, received = 9.0
+[DEMAND][Tick #9] Central district needs 11.0 units
+[CONTROL][Tick #9] Dispatcher turns P4 (South -> West) OFF
+[CONTROL][Tick #9] Dispatcher turns P3 (South -> Central) ON
+[CONTROL][Tick #9] Active pump power is 10.0/11.0
+[INFLOW][Tick #9] North Reservoir: 1.0 -> 7.0
+[EMPTY][Tick #9] North Reservoir is empty!
+[INFLOW][Tick #9] South Reservoir: 62.0 -> 66.0
+[CONSUMPTION][Tick #9] East: demand = 12.0, received = 7.0
+[DEFICIT][Tick #9] East district faced deficit: 5.0 (Demand: 12.0, Received: 7.0)!
+[DEMAND][Tick #9] East district needs 9.0 units
+[FLOW][Tick #9] P4 (South -> West): 6.0 -> 0.0 units/step
+[CONSUMPTION][Tick #9] West: demand = 6.0, received = 6.0
+[DEMAND][Tick #9] West district needs 10.0 units
+[SENSOR][Tick #9] South Reservoir's level is 66.0 (message #11)
+[MESSAGE][Tick #9] Message #11 is sent. Delivery tick is 11
+[SENSOR][Tick #9] North Reservoir's level is 0.0 (message #12)
+[MESSAGE][Tick #9] Message #12 is sent. Delivery tick is 11
+[FLOW][Tick #9] P3 (South -> Central): 0.0 -> 2.0 units/step
+
+
+========== TICK 9: CURRENT STATUS and DISPATCHER VIEW ==========
+Reservoirs:
+  North Reservoir: actual = 0.0/120.0, dispatcher = 40.0 (measurement: tick 5, message #8)
+  South Reservoir: actual = 64.0/100.0, dispatcher = 65.0 (measurement: tick 7, message #9)
+Districts:
+  Central: demand = 11.0, received = 11.0, remaining = 0.0
+  East: demand = 9.0, received = 0.0, remaining = 9.0
+  West: demand = 10.0, received = 0.0, remaining = 10.0
+Pumps:
+  P1 (North -> Central) is ON: last flow = 9.0, power = 4.0
+  P2 (North -> East) is ON: last flow = 7.0, power = 3.0
+  P3 (South -> Central) is ON: last flow = 2.0, power = 3.0
+  P4 (South -> West) is OFF: last flow = 0.0, power = 0.0
+Total active power: 10.0/11.0
+============================ TICK 9 ============================
+
+
+[FINISH] Independent simulation completed
+
+
+========== TICK 10: CURRENT STATUS and DISPATCHER VIEW ==========
+Reservoirs:
+  North Reservoir: actual = 0.0/120.0, dispatcher = 40.0 (measurement: tick 5, message #8)
+  South Reservoir: actual = 64.0/100.0, dispatcher = 65.0 (measurement: tick 7, message #9)
+Districts:
+  Central: demand = 11.0, received = 11.0, remaining = 0.0
+  East: demand = 9.0, received = 0.0, remaining = 9.0
+  West: demand = 10.0, received = 0.0, remaining = 10.0
+Pumps:
+  P1 (North -> Central) is ON: last flow = 9.0, power = 4.0
+  P2 (North -> East) is ON: last flow = 7.0, power = 3.0
+  P3 (South -> Central) is ON: last flow = 2.0, power = 3.0
+  P4 (South -> West) is OFF: last flow = 0.0, power = 0.0
+Total active power: 10.0/11.0
+============================ TICK 10 ============================
+
+
+
+========== SUMMARY ==========
+Messages: measured = 12, lost = 1, duplicates sent = 0
+Messages: received = 8, duplicates ignored = 0, old ignored = 1
+Messages still in transit: 3
+Central completed periods: demand = 96.0, received = 87.0, deficit = 9.0
+Central unfinished period: demand = 11.0, received = 11.0, remaining = 0.0
+East completed periods: demand = 91.0, received = 62.0, deficit = 29.0
+East unfinished period: demand = 9.0, received = 0.0, remaining = 9.0
+West completed periods: demand = 77.0, received = 22.0, deficit = 55.0
+West unfinished period: demand = 10.0, received = 0.0, remaining = 10.0
+=============================
