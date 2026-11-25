@@ -1,0 +1,87 @@
+[READY] TCP server 127.0.0.1:48071, ticks = 0, delay = 500 ms, seed = 42
+[CONNECT] observer 0: connection = 0
+[CONNECT] observer 0: connection = 1
+[CONNECT] reservoir 0: connection = 2
+[CONNECT] reservoir 1: connection = 3
+[CONNECT] district 0: connection = 4
+[CONNECT] district 1: connection = 5
+[CONNECT] district 2: connection = 6
+[CONNECT] pump 0: connection = 7
+[CONNECT] pump 1: connection = 8
+[CONNECT] pump 2: connection = 9
+[CONNECT] pump 3: connection = 10
+[CONNECT] sensor 0: connection = 11
+[CONNECT] sensor 1: connection = 12
+[CONNECT] dispatcher 0: connection = 13
+[START] Connected 12 participants
+[STEP][Tick #1] reservoir 0
+[INFLOW][Tick #1] North Reservoir: 82.0 -> 88.0
+[STEP][Tick #1] reservoir 1
+[INFLOW][Tick #1] South Reservoir: 64.0 -> 68.0
+[STEP][Tick #1] pump 2
+[STEP][Tick #1] pump 3
+[STEP][Tick #1] sensor 0
+[SENSOR][Tick #1] North Reservoir's level is 88.0 (message #1)
+[MESSAGE][Tick #1] Message #1 is sent. Delivery tick is 2
+[STEP][Tick #1] sensor 1
+[SENSOR][Tick #1] South Reservoir's level is 68.0 (message #2)
+[MESSAGE][Tick #1] Message #2 is sent. Delivery tick is 3
+[STEP][Tick #1] pump 1
+[STEP][Tick #1] dispatcher 0
+[CONTROL][Tick #1] Dispatcher turns P1 (North -> Central) ON
+[CONTROL][Tick #1] Dispatcher turns P2 (North -> East) ON
+[CONTROL][Tick #1] Dispatcher turns P3 (South -> Central) ON
+[CONTROL][Tick #1] Active pump power is 10.0/11.0
+[STEP][Tick #1] pump 0
+[FLOW][Tick #1] P1 (North -> Central): 0.0 -> 9.0 units/step
+[CONNECT] observer 0: connection = 0
+[PAUSE] Waiting for missing participants, model state is saved
+[CONNECT] reservoir 0: connection = 2
+[RESUME] All participants are connected
+[PAUSE] Waiting for missing participants, model state is saved
+[CONNECT] reservoir 1: connection = 3
+[RESUME] All participants are connected
+[PAUSE] Waiting for missing participants, model state is saved
+[CONNECT] district 0: connection = 4
+[RESUME] All participants are connected
+[PAUSE] Waiting for missing participants, model state is saved
+[CONNECT] district 1: connection = 5
+[RESUME] All participants are connected
+[PAUSE] Waiting for missing participants, model state is saved
+[CONNECT] district 2: connection = 6
+[RESUME] All participants are connected
+[PAUSE] Waiting for missing participants, model state is saved
+[CONNECT] pump 0: connection = 7
+[RESUME] All participants are connected
+[PAUSE] Waiting for missing participants, model state is saved
+[CONNECT] pump 1: connection = 8
+[RESUME] All participants are connected
+[PAUSE] Waiting for missing participants, model state is saved
+[CONNECT] pump 2: connection = 9
+[RESUME] All participants are connected
+[PAUSE] Waiting for missing participants, model state is saved
+[CONNECT] pump 3: connection = 10
+[RESUME] All participants are connected
+[PAUSE] Waiting for missing participants, model state is saved
+[CONNECT] sensor 0: connection = 11
+[RESUME] All participants are connected
+[PAUSE] Waiting for missing participants, model state is saved
+[CONNECT] sensor 1: connection = 12
+[RESUME] All participants are connected
+[PAUSE] Waiting for missing participants, model state is saved
+[CONNECT] dispatcher 0: connection = 13
+[RESUME] All participants are connected
+[CONNECT] admin 0: connection = 14
+[ADMIN] DISCONNECT pump 0
+[PAUSE] Waiting for missing participants, model state is saved
+[CONNECT] admin 0: connection = 7
+[CONNECT] admin 0: connection = 7
+[ADMIN] CONNECT pump 0
+[CONNECT] pump 0: connection = 7
+[RESUME] All participants are connected
+[CONNECT] admin 0: connection = 14
+[CONNECT] admin 0: connection = 14
+[CONNECT] admin 0: connection = 14
+[ADMIN] DISCONNECT observer 0
+[CONNECT] admin 0: connection = 0
+[FINISH] Stopped by administrator

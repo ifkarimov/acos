@@ -1,0 +1,10 @@
+python3 tests/network_tests.py
+TCP: invalid arguments and unavailable server passed
+TCP: finite runs, fast mode, separate output and model invariants passed
+TCP: multiple observers, all 12 reconnecting roles and admin commands passed
+TCP: signals, shutdown before start and unexpected server death passed
+TCP: fragmented and combined commands, invalid peers and occupied port passed
+TCP: a slow observer cannot block the simulation or shutdown
+TCP: silent participant, live peers during a long period and silent server passed
+TCP: physical accident reaches all clients with exit code 1
+All TCP tests passed

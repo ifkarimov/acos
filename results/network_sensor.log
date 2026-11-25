@@ -1,0 +1,34 @@
+[REGISTER] sensor 0: connection = 10
+[START] Connected 12 participants
+[STEP][Tick #1] sensor 0
+[SENSOR][Tick #1] North Reservoir's level is 88.0 (message #1)
+[MESSAGE][Tick #1] Message #1 is sent. Delivery tick is 2
+[STEP][Tick #3] sensor 0
+[SENSOR][Tick #3] North Reservoir's level is 78.0 (message #3)
+[MESSAGE][Tick #3] Message #3 is sent. Delivery tick is 4
+[STEP][Tick #5] sensor 0
+[SENSOR][Tick #5] North Reservoir's level is 59.0 (message #5)
+[MESSAGE][Tick #5] Message #5 was LOST!
+[STEP][Tick #6] sensor 0
+[SENSOR][Tick #6] North Reservoir's level is 39.0 (message #7)
+[MESSAGE][Tick #6] Message #7 is sent. Delivery tick is 9
+[STEP][Tick #9] sensor 0
+[SENSOR][Tick #9] North Reservoir's level is 19.0 (message #10)
+[MESSAGE][Tick #9] Message #10 is sent. Delivery tick is 12
+[STEP][Tick #11] sensor 0
+[SENSOR][Tick #11] North Reservoir's level is 4.0 (message #12)
+[MESSAGE][Tick #11] Message #12 is sent. Delivery tick is 13
+[STEP][Tick #13] sensor 0
+[SENSOR][Tick #13] North Reservoir's level is 0.0 (message #14)
+[MESSAGE][Tick #13] Message #14 is sent. Delivery tick is 15
+[STEP][Tick #15] sensor 0
+[SENSOR][Tick #15] North Reservoir's level is 12.0 (message #16)
+[MESSAGE][Tick #15] Message #16 is sent. Delivery tick is 18
+[STEP][Tick #17] sensor 0
+[SENSOR][Tick #17] North Reservoir's level is 24.0 (message #18)
+[MESSAGE][Tick #17] Message #18 is sent. Delivery tick is 18
+[MESSAGE][Tick #17] Duplicate of message #18 is sent. Delivery tick is 21
+[STEP][Tick #19] sensor 0
+[SENSOR][Tick #19] North Reservoir's level is 36.0 (message #20)
+[MESSAGE][Tick #19] Message #20 is sent. Delivery tick is 19
+[FINISH] Requested tick count is completed
