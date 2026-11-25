@@ -1,0 +1,25 @@
+python3 tests/run_tests.py
+Model: water balance, pipe limits, power, messages, accidents and statistics passed
+Invalid arguments passed
+Finite runs and fast mode passed
+SIGINT and SIGTERM passed
+All tests passed
+python3 tests/run_tests.py water_system_unnamed
+Model: water balance, pipe limits, power, messages, accidents and statistics passed
+Invalid arguments passed
+Finite runs and fast mode passed
+SIGINT and SIGTERM passed
+All tests passed
+python3 tests/process_tests.py
+water_system: 12 child processes, parent/group signals, killed worker and cleanup passed
+water_system: all 12 fork failures, abandoned semaphore and fatal accident passed
+water_system_unnamed: 12 child processes, parent/group signals, killed worker and cleanup passed
+water_system_unnamed: all 12 fork failures, abandoned semaphore and fatal accident passed
+Process tests passed
+python3 tests/independent_tests.py
+Independent: finite passed
+Independent: startup passed
+Independent: signal passed
+Independent: duplicate passed
+Independent: killed passed
+Independent argument checks passed

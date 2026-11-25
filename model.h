@@ -13,7 +13,7 @@
 #define MESSAGE_DUPLICATE_PERCENT 15
 #define MAX_MESSAGE_DELAY 3
 
-// В ДЗ2 такт в полях объектов означает их собственный шаг или период.
+// В описаниях полей такт означает собственный шаг или период участника.
 // previous_level хранит уровень до последнего изменения, flow - результат последнего шага насоса.
 
 // Фактическое состояние резервуара
@@ -89,7 +89,7 @@ typedef struct {
     unsigned long long ignored_old_count; // сколько устаревших сообщений проигнорировали
 } WaterSystem;
 
-// После запуска потоков эти функции вызываются при захваченном мьютексе модели
+// После запуска процессов эти функции вызываются при захваченном семафоре модели
 void ModelInit(WaterSystem *system); // запуск системы
 void ReservoirStep(WaterSystem *system, int reservoir_id, int tick); // пополнение резервуара
 void DistrictPrepare(WaterSystem *system, int district_id, int tick); // новая потребность района

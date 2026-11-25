@@ -7,10 +7,11 @@ import shlex
 import signal
 import subprocess
 import tempfile
+import sys
 
 
 root = Path(__file__).resolve().parent.parent
-program = str(root / "water_system")
+program = str(root / (sys.argv[1] if len(sys.argv) > 1 else "water_system"))
 
 
 def run(*arguments, expected=0):
@@ -22,7 +23,7 @@ def run(*arguments, expected=0):
 
 
 def check_output(output):
-    assert "[THREADS] Started 12 worker threads" in output
+    assert "[PROCESSES] Started 12 worker processes" in output
     assert "[FINISH] Requested tick count is completed" in output
     assert "[FATAL]" not in output
     for actual, capacity in re.findall(r"actual = ([\d.]+)/([\d.]+)", output):
@@ -70,7 +71,7 @@ with tempfile.TemporaryDirectory() as directory:
     check_output(run(5, 0, 42))
     print("Finite runs and fast mode passed")
 
-    # При большой задержке рабочие потоки должны проснуться сразу после остановки.
+    # При большой задержке рабочие процессы должны проснуться сразу после остановки
     for signum in [signal.SIGINT, signal.SIGTERM]:
         with tempfile.TemporaryFile(mode="w+") as errors:
             process = subprocess.Popen(
@@ -80,8 +81,8 @@ with tempfile.TemporaryDirectory() as directory:
             try:
                 while True:
                     line = process.stdout.readline()
-                    assert line, "Program stopped before creating threads"
-                    if "[THREADS]" in line:
+                    assert line, "Program stopped before creating processes"
+                    if "[PROCESSES]" in line:
                         break
                 process.send_signal(signum)
                 output, _ = process.communicate(timeout=3)

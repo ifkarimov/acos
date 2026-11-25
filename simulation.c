@@ -2,23 +2,54 @@
 
 #include "simulation.h"
 #include "output.h"
+#include "ipc.h"
 
 #include <errno.h>
-#include <fcntl.h>
 #include <limits.h>
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include <time.h>
+#include <sys/wait.h>
 #include <unistd.h>
 
-// Функции с locked в названии вызываются при захваченном мьютексе
+static bool wait_semaphore(sem_t *semaphore) {
+    int result;
+    do {
+        result = sem_wait(semaphore);
+    } while (result != 0 && errno == EINTR);
+    if (result != 0) {
+        perror("sem_wait");
+        return false;
+    }
+    return true;
+}
+
+// Эти две функции используются только в дочерних процессах
+// При ошибке родитель увидит код 2 через waitpid и остановит остальных
+static void lock_worker(Simulation *simulation) {
+    if (!wait_semaphore(simulation->mutex)) {
+        _exit(2);
+    }
+}
+
+static void unlock_worker(Simulation *simulation) {
+    if (sem_post(simulation->mutex) != 0) {
+        perror("sem_post");
+        _exit(2);
+    }
+}
+
+// Функции с locked в названии вызываются при захваченном семафоре модели
 static void stop_locked(Simulation *simulation) {
     if (simulation->stopping) {
         return;
     }
     simulation->stopping = true;
-    pthread_cond_broadcast(&simulation->condition);
+    for (int i = 0; i < WORKER_COUNT; ++i) {
+        if (sem_post(simulation->stop_event[i]) != 0 || sem_post(simulation->start_event) != 0) {
+            perror("sem_post");
+            simulation->system_error = true;
+        }
+    }
 
     // диспетчер может спать на семафоре, его тоже нужно разбудить
     if (sem_post(simulation->dispatcher_event) != 0) {
@@ -36,105 +67,107 @@ static void notify_dispatcher_locked(Simulation *simulation) {
 }
 
 static bool wait_start_locked(Simulation *simulation) {
-    while (!simulation->started && !simulation->stopping) {
-        int error = pthread_cond_wait(&simulation->condition, &simulation->mutex);
-        if (error != 0) {
-            fprintf(stderr, "pthread_cond_wait: %s\n", strerror(error));
-            simulation->system_error = true;
-            stop_locked(simulation);
-        }
+    unlock_worker(simulation);
+    if (!wait_semaphore(simulation->start_event)) {
+        _exit(2);
     }
-    return !simulation->stopping;
+    lock_worker(simulation);
+    return simulation->started && !simulation->stopping;
 }
 
-// Во время ожидания мьютекс освобождается, остальные потоки продолжают работу
-static bool wait_step_locked(Simulation *simulation, long delay_ms) {
-    struct timespec deadline;
-    if (clock_gettime(CLOCK_REALTIME, &deadline) != 0) {
+static bool make_deadline(struct timespec *deadline, long delay_ms) {
+    if (clock_gettime(CLOCK_REALTIME, deadline) != 0) {
         perror("clock_gettime");
+        return false;
+    }
+
+    deadline->tv_sec += delay_ms / 1000;
+    deadline->tv_nsec += (delay_ms % 1000) * 1000000L;
+    if (deadline->tv_nsec >= 1000000000L) {
+        ++deadline->tv_sec;
+        deadline->tv_nsec -= 1000000000L;
+    }
+    return true;
+}
+
+// Во время ожидания семафор модели освобождается, остальные процессы продолжают работу
+static bool wait_step_locked(ProcessData *data, long delay_ms) {
+    Simulation *simulation = data->simulation;
+    if (simulation->stopping) {
+        return false;
+    }
+    struct timespec deadline;
+    if (!make_deadline(&deadline, delay_ms)) {
         simulation->system_error = true;
         stop_locked(simulation);
         return false;
     }
 
-    deadline.tv_sec += delay_ms / 1000;
-    deadline.tv_nsec += (delay_ms % 1000) * 1000000L;
-    if (deadline.tv_nsec >= 1000000000L) {
-        ++deadline.tv_sec;
-        deadline.tv_nsec -= 1000000000L;
+    unlock_worker(simulation);
+    int result;
+    do {
+        result = sem_timedwait(simulation->stop_event[data->index], &deadline);
+    } while (result != 0 && errno == EINTR);
+    int error = result == 0 ? 0 : errno;
+    lock_worker(simulation);
+    if (error != 0 && error != ETIMEDOUT) {
+        errno = error;
+        perror("sem_timedwait");
+        simulation->system_error = true;
+        stop_locked(simulation);
     }
-
-    while (!simulation->stopping) {
-        int error = pthread_cond_timedwait(&simulation->condition, &simulation->mutex, &deadline);
-        if (error == ETIMEDOUT) {
-            return !simulation->stopping;
-        }
-        if (error != 0) {
-            fprintf(stderr, "pthread_cond_timedwait: %s\n", strerror(error));
-            simulation->system_error = true;
-            stop_locked(simulation);
-        }
-        // после случайного пробуждения ждём до того же момента времени
-    }
-    return false;
+    return !simulation->stopping;
 }
 
-static void *ReservoirThread(void *argument) {
-    ThreadData *data = argument;
+static void ReservoirProcess(ProcessData *data) {
     Simulation *simulation = data->simulation;
 
-    pthread_mutex_lock(&simulation->mutex);
+    lock_worker(simulation);
     if (wait_start_locked(simulation)) {
         do {
             ReservoirStep(&simulation->system, data->id, simulation->tick);
             if (simulation->system.fatal_accident) {
                 stop_locked(simulation);
             }
-        } while (wait_step_locked(simulation, simulation->delay_ms));
+        } while (wait_step_locked(data, simulation->delay_ms));
     }
-    pthread_mutex_unlock(&simulation->mutex);
-    return NULL;
+    unlock_worker(simulation);
 }
 
-static void *PumpThread(void *argument) {
-    ThreadData *data = argument;
+static void PumpProcess(ProcessData *data) {
     Simulation *simulation = data->simulation;
 
-    pthread_mutex_lock(&simulation->mutex);
+    lock_worker(simulation);
     if (wait_start_locked(simulation)) {
         do {
             PumpStep(&simulation->system, data->id, simulation->tick);
             if (simulation->system.fatal_accident) {
                 stop_locked(simulation);
             }
-        } while (wait_step_locked(simulation, simulation->delay_ms));
+        } while (wait_step_locked(data, simulation->delay_ms));
     }
-    pthread_mutex_unlock(&simulation->mutex);
-    return NULL;
+    unlock_worker(simulation);
 }
 
-static void *DistrictThread(void *argument) {
-    ThreadData *data = argument;
+static void DistrictProcess(ProcessData *data) {
     Simulation *simulation = data->simulation;
 
-    pthread_mutex_lock(&simulation->mutex);
+    lock_worker(simulation);
     if (wait_start_locked(simulation)) {
-        // начальную потребность задали до запуска потоков
-        while (wait_step_locked(simulation, simulation->delay_ms)) {
+        // начальную потребность задали до запуска процессов
+        while (wait_step_locked(data, simulation->delay_ms)) {
             DistrictFinish(&simulation->system, data->id, simulation->tick);
             DistrictPrepare(&simulation->system, data->id, simulation->tick);
             notify_dispatcher_locked(simulation);
         }
     }
-    pthread_mutex_unlock(&simulation->mutex);
-    return NULL;
+    unlock_worker(simulation);
 }
 
-static void *SensorThread(void *argument) {
-    ThreadData *data = argument;
+static void SensorProcess(ProcessData *data) {
     Simulation *simulation = data->simulation;
 
-    pthread_mutex_lock(&simulation->mutex);
+    lock_worker(simulation);
     if (wait_start_locked(simulation)) {
         do {
             GenerateMessage(&simulation->system, data->id, simulation->tick, &data->seed);
@@ -143,28 +176,26 @@ static void *SensorThread(void *argument) {
             } else {
                 notify_dispatcher_locked(simulation);
             }
-        } while (wait_step_locked(simulation, simulation->delay_ms * MESSAGE_PERIOD));
+        } while (wait_step_locked(data, simulation->delay_ms * MESSAGE_PERIOD));
     }
-    pthread_mutex_unlock(&simulation->mutex);
-    return NULL;
+    unlock_worker(simulation);
 }
 
-static void *DispatcherThread(void *argument) {
-    ThreadData *data = argument;
+static void DispatcherProcess(ProcessData *data) {
     Simulation *simulation = data->simulation;
 
-    pthread_mutex_lock(&simulation->mutex);
+    lock_worker(simulation);
     bool running = wait_start_locked(simulation);
-    pthread_mutex_unlock(&simulation->mutex);
+    unlock_worker(simulation);
 
     while (running) {
-        // мьютекс не захвачен, пока диспетчер ожидает уведомление
+        // семафор модели не захвачен, пока диспетчер ожидает уведомление
         int result;
         do {
             result = sem_wait(simulation->dispatcher_event);
         } while (result != 0 && errno == EINTR);
 
-        pthread_mutex_lock(&simulation->mutex);
+        lock_worker(simulation);
         if (result != 0) {
             perror("sem_wait");
             simulation->system_error = true;
@@ -176,178 +207,263 @@ static void *DispatcherThread(void *argument) {
             DispatcherReceiveMessages(&simulation->system, &simulation->dispatcher, simulation->tick);
             DispatcherControl(&simulation->system, &simulation->dispatcher, simulation->tick);
         }
-        pthread_mutex_unlock(&simulation->mutex);
+        unlock_worker(simulation);
     }
-    return NULL;
 }
 
-static bool create_thread(pthread_t *thread, ThreadData *data, void *(*function)(void *)) {
-    int error = pthread_create(thread, NULL, function, data);
-    if (error != 0) {
-        fprintf(stderr, "pthread_create: %s\n", strerror(error));
+// Проверяем только своих детей, чтобы не забрать статус постороннего процесса
+static bool check_children(pid_t *children, int created) {
+    bool success = true;
+    for (int i = 0; i < created; ++i) {
+        if (children[i] == 0) {
+            continue;
+        }
+        int status;
+        pid_t result;
+        do {
+            result = waitpid(children[i], &status, WNOHANG);
+        } while (result == -1 && errno == EINTR);
+        if (result == -1) {
+            perror("waitpid");
+            success = false;
+        } else if (result != 0) {
+            if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) {
+                fprintf(stderr, "Worker process %ld stopped unexpectedly\n", (long)children[i]);
+                success = false;
+            }
+            children[i] = 0;
+        }
+    }
+    return success;
+}
+
+// Семафор не восстанавливается автоматически после гибели владельца
+// Поэтому родитель проверяет детей и во время ожидания блокировки
+static bool lock_parent(Simulation *simulation, pid_t *children, int created) {
+    while (check_children(children, created)) {
+        struct timespec deadline;
+        if (!make_deadline(&deadline, 50)) {
+            return false;
+        }
+        if (sem_timedwait(simulation->mutex, &deadline) == 0) {
+            return true;
+        }
+        if (errno != EINTR && errno != ETIMEDOUT) {
+            perror("sem_timedwait");
+            return false;
+        }
+    }
+    return false;
+}
+
+static bool unlock_parent(Simulation *simulation) {
+    if (sem_post(simulation->mutex) != 0) {
+        perror("sem_post");
         return false;
     }
     return true;
 }
 
-static sem_t *create_semaphore(void) {
-    char name[64];
-    snprintf(name, sizeof(name), "/water_%ld", (long)getpid());
-    sem_t *semaphore = sem_open(name, O_CREAT | O_EXCL, 0600, 0);
-    if (semaphore == SEM_FAILED) {
-        perror("sem_open");
-        return SEM_FAILED;
+static bool finish_children(pid_t *children, int created, bool force) {
+    bool success = true;
+    while (!force) {
+        if (!check_children(children, created)) {
+            success = false;
+            force = true;
+            break;
+        }
+        bool remaining = false;
+        for (int i = 0; i < created; ++i) {
+            if (children[i] != 0) {
+                remaining = true;
+            }
+        }
+        if (!remaining) {
+            return success;
+        }
+        struct timespec pause = {.tv_sec = 0, .tv_nsec = 10000000L};
+        if (nanosleep(&pause, NULL) != 0 && errno != EINTR) {
+            perror("nanosleep");
+            success = false;
+            force = true;
+        }
     }
 
-    // убираем имя сразу, сам семафор остаётся доступен до sem_close
-    if (sem_unlink(name) != 0) {
-        perror("sem_unlink");
-        sem_close(semaphore);
-        return SEM_FAILED;
+    // Состояние могло остаться заблокированным погибшим процессом
+    for (int i = 0; i < created; ++i) {
+        if (children[i] != 0 && kill(children[i], SIGKILL) != 0 && errno != ESRCH) {
+            perror("kill");
+            success = false;
+        }
     }
-    return semaphore;
+    for (int i = 0; i < created; ++i) {
+        if (children[i] == 0) {
+            continue;
+        }
+        pid_t result;
+        do {
+            result = waitpid(children[i], NULL, 0);
+        } while (result == -1 && errno == EINTR);
+        if (result == -1) {
+            perror("waitpid");
+            success = false;
+        }
+    }
+    return success;
 }
 
-static bool init_simulation(Simulation *simulation, long delay_ms) {
-    memset(simulation, 0, sizeof(*simulation));
+int RunSimulation(int max_ticks, long delay_ms, unsigned int seed, const volatile sig_atomic_t *stop_requested) {
+    Simulation *simulation = CreateSharedSimulation();
+    if (simulation == NULL) {
+        return 2;
+    }
     ModelInit(&simulation->system);
     DispatcherInit(&simulation->dispatcher, &simulation->system);
     // нулевая задержка включает быстрый режим, но не бесконечный активный цикл
     simulation->delay_ms = delay_ms == 0 ? 1 : delay_ms;
 
-    int error = pthread_mutex_init(&simulation->mutex, NULL);
-    if (error != 0) {
-        fprintf(stderr, "pthread_mutex_init: %s\n", strerror(error));
-        return false;
-    }
-    error = pthread_cond_init(&simulation->condition, NULL);
-    if (error != 0) {
-        fprintf(stderr, "pthread_cond_init: %s\n", strerror(error));
-        pthread_mutex_destroy(&simulation->mutex);
-        return false;
-    }
-    simulation->dispatcher_event = create_semaphore();
-    if (simulation->dispatcher_event == SEM_FAILED) {
-        pthread_cond_destroy(&simulation->condition);
-        pthread_mutex_destroy(&simulation->mutex);
-        return false;
-    }
-    return true;
-}
-
-int RunSimulation(int max_ticks, long delay_ms, unsigned int seed, const volatile sig_atomic_t *stop_requested) {
-    Simulation simulation;
-    if (!init_simulation(&simulation, delay_ms)) {
-        return 2;
-    }
-
-    // сигналы получает только главный поток, рабочие наследуют заблокированную маску
+    // Сигналы обрабатывает родитель, дети наследуют заблокированную маску
     sigset_t signals;
     sigset_t old_mask;
     sigemptyset(&signals);
     sigaddset(&signals, SIGINT);
     sigaddset(&signals, SIGTERM);
-    int error = pthread_sigmask(SIG_BLOCK, &signals, &old_mask);
-    if (error != 0) {
-        fprintf(stderr, "pthread_sigmask: %s\n", strerror(error));
-        sem_close(simulation.dispatcher_event);
-        pthread_cond_destroy(&simulation.condition);
-        pthread_mutex_destroy(&simulation.mutex);
+    if (sigprocmask(SIG_BLOCK, &signals, &old_mask) != 0) {
+        perror("sigprocmask");
+        DestroySharedSimulation(simulation);
         return 2;
     }
 
     for (int d = 0; d < DISTRICT_COUNT; ++d) {
-        DistrictPrepare(&simulation.system, d, 0);
+        DistrictPrepare(&simulation->system, d, 0);
     }
 
-    pthread_t threads[WORKER_COUNT];
-    ThreadData data[WORKER_COUNT];
+    pid_t children[WORKER_COUNT] = {0};
     int created = 0;
-    bool success = true;
-    void *(*functions[])(void *) = {ReservoirThread, DistrictThread, PumpThread, SensorThread, DispatcherThread};
+    bool success = fflush(NULL) == 0;
+    void (*functions[])(ProcessData *) = {ReservoirProcess, DistrictProcess, PumpProcess, SensorProcess, DispatcherProcess};
     int counts[] = {RESERVOIR_COUNT, DISTRICT_COUNT, PUMP_COUNT, RESERVOIR_COUNT, 1};
+    const char *roles[] = {"reservoir", "district", "pump", "sensor", "dispatcher"};
 
     for (int type = 0; type < 5 && success; ++type) {
         for (int id = 0; id < counts[type]; ++id) {
-            data[created] = (ThreadData){
-                .simulation = &simulation,
+            ProcessData data = {
+                .simulation = simulation,
                 .id = id,
                 .seed = seed + (unsigned int)id * 2654435761u,
+                .index = created,
             };
-            if (!create_thread(&threads[created], &data[created], functions[type])) {
+            pid_t child = fork();
+            if (child == -1) {
+                perror("fork");
                 success = false;
                 break;
             }
+            if (child == 0) {
+                functions[type](&data);
+                // Не запускаем обработчики exit и не повторяем буферы родителя
+                int result = fflush(stdout) == EOF || ferror(stdout) ? 2 : 0;
+                _exit(result);
+            }
+            children[created] = child;
+            printf("[PROCESS] %s %d: pid = %ld\n", roles[type], id, (long)child);
             ++created;
         }
     }
 
-    error = pthread_sigmask(SIG_SETMASK, &old_mask, NULL);
-    if (error != 0) {
-        fprintf(stderr, "pthread_sigmask: %s\n", strerror(error));
+    if (sigprocmask(SIG_SETMASK, &old_mask, NULL) != 0) {
+        perror("sigprocmask");
         success = false;
     }
 
-    pthread_mutex_lock(&simulation.mutex);
-    if (!success) {
-        simulation.system_error = true;
-        stop_locked(&simulation);
-    } else if (*stop_requested) {
-        stop_locked(&simulation);
-    } else {
-        printf("[THREADS] Started %d worker threads\n", created);
-        simulation.started = true;
-        pthread_cond_broadcast(&simulation.condition);
-        notify_dispatcher_locked(&simulation);
+    bool locked = lock_parent(simulation, children, created);
+    if (!locked) {
+        success = false;
     }
-
-    while (!simulation.stopping) {
-        long remaining_ms = simulation.delay_ms;
-        // небольшие интервалы позволяют быстро заметить Ctrl + C
-        while (remaining_ms > 0 && !simulation.stopping && !*stop_requested) {
-            long part = remaining_ms < 50 ? remaining_ms : 50;
-            if (!wait_step_locked(&simulation, part)) {
+    if (!success) {
+        if (locked) {
+            simulation->system_error = true;
+            stop_locked(simulation);
+        }
+    } else if (*stop_requested) {
+        stop_locked(simulation);
+    } else {
+        printf("[PROCESSES] Started %d worker processes\n", created);
+        simulation->started = true;
+        for (int i = 0; i < created; ++i) {
+            if (sem_post(simulation->start_event) != 0) {
+                perror("sem_post");
+                simulation->system_error = true;
+                stop_locked(simulation);
                 break;
             }
-            remaining_ms -= part;
         }
+        notify_dispatcher_locked(simulation);
+    }
+    if (locked && !unlock_parent(simulation)) {
+        success = false;
+    }
 
-        if (*stop_requested) {
-            stop_locked(&simulation);
+    long remaining_ms = simulation->delay_ms;
+    while (success) {
+        if (!lock_parent(simulation, children, created)) {
+            success = false;
+            break;
         }
-        if (simulation.stopping) {
+        if (*stop_requested) {
+            stop_locked(simulation);
+        }
+        if (!simulation->stopping && remaining_ms == 0) {
+            PrintStatus(&simulation->system, &simulation->dispatcher, simulation->tick);
+            ++simulation->tick;
+            if (max_ticks != 0 && simulation->tick >= max_ticks) {
+                stop_locked(simulation);
+            } else if (simulation->tick >= INT_MAX - 2 * MAX_MESSAGE_DELAY) {
+                printf("[ERROR] Simulation tick limit is reached\n");
+                simulation->system_error = true;
+                stop_locked(simulation);
+            } else {
+                // сообщения с задержкой могли стать доступными на новом такте
+                notify_dispatcher_locked(simulation);
+            }
+            remaining_ms = simulation->delay_ms;
+        }
+        bool stopping = simulation->stopping;
+        success = !simulation->system_error;
+        if (!unlock_parent(simulation)) {
+            success = false;
+        }
+        if (stopping || !success) {
             break;
         }
 
-        PrintStatus(&simulation.system, &simulation.dispatcher, simulation.tick);
-        ++simulation.tick;
-        if (max_ticks != 0 && simulation.tick >= max_ticks) {
-            stop_locked(&simulation);
-        } else if (simulation.tick >= INT_MAX - 2 * MAX_MESSAGE_DELAY) {
-            printf("[ERROR] Simulation tick limit is reached\n");
-            simulation.system_error = true;
-            stop_locked(&simulation);
-        } else {
-            // сообщения с задержкой могли стать доступными на новом такте
-            notify_dispatcher_locked(&simulation);
+        // Небольшие интервалы позволяют быстро заметить сигнал или гибель ребёнка
+        long part = remaining_ms < 50 ? remaining_ms : 50;
+        struct timespec pause = {.tv_sec = part / 1000, .tv_nsec = (part % 1000) * 1000000L};
+        while (nanosleep(&pause, &pause) != 0) {
+            if (errno != EINTR) {
+                perror("nanosleep");
+                success = false;
+                break;
+            }
+            if (*stop_requested) {
+                break;
+            }
         }
-    }
-    pthread_mutex_unlock(&simulation.mutex);
-
-    for (int i = 0; i < created; ++i) {
-        error = pthread_join(threads[i], NULL);
-        if (error != 0) {
-            // нельзя разрушать общие данные, если поток ещё может их использовать
-            fprintf(stderr, "pthread_join: %s\n", strerror(error));
-            fflush(NULL);
-            _Exit(2);
-        }
+        remaining_ms -= part;
     }
 
-    // все рабочие потоки завершены, мьютекс больше не нужен для чтения данных
-    if (simulation.system_error) {
+    if (!finish_children(children, created, !success)) {
+        success = false;
+    }
+
+    // Все дети завершены. При системной ошибке снимок может быть неполным
+    if (!success) {
         printf("[FINISH] Simulation stopped because of a system error\n");
-    } else if (simulation.system.fatal_accident) {
+        DestroySharedSimulation(simulation);
+        return 2;
+    }
+    if (simulation->system.fatal_accident) {
         printf("[FINISH] Simulation stopped because of a fatal accident!\n");
     } else if (*stop_requested) {
         printf("[FINISH] Interrupted by user (signal %d)\n", (int)*stop_requested);
@@ -355,18 +471,12 @@ int RunSimulation(int max_ticks, long delay_ms, unsigned int seed, const volatil
         printf("[FINISH] Requested tick count is completed\n");
     }
 
-    PrintStatus(&simulation.system, &simulation.dispatcher, simulation.tick);
-    PrintSummary(&simulation.system);
+    PrintStatus(&simulation->system, &simulation->dispatcher, simulation->tick);
+    PrintSummary(&simulation->system);
+    int result = simulation->system.fatal_accident ? 1 : 0;
 
-    if (sem_close(simulation.dispatcher_event) != 0) {
-        perror("sem_close");
-        simulation.system_error = true;
-    }
-    pthread_cond_destroy(&simulation.condition);
-    pthread_mutex_destroy(&simulation.mutex);
-
-    if (simulation.system_error) {
+    if (!DestroySharedSimulation(simulation)) {
         return 2;
     }
-    return simulation.system.fatal_accident ? 1 : 0;
+    return result;
 }
